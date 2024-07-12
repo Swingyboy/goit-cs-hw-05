@@ -1,6 +1,7 @@
 import argparse
 import requests
-from collections import defaultdict
+from collections import defaultdict, Counter
+from concurrent.futures import ThreadPoolExecutor
 import matplotlib.pyplot as plt
 import re
 
@@ -20,19 +21,20 @@ def mapper(word):
     return (word, 1)
 
 
-def reducer(count1, count2):
-    return count1 + count2
+def reducer(mapped_word_counts):
+    reduced = Counter()
+    for word, count in mapped_word_counts:
+        reduced[word] += count
+    return reduced
 
 
 def map_reduce(text):
     words = tokenize(text)
-    mapped = list(map(mapper, words))
 
-    grouped = defaultdict(list)
-    for word, count in mapped:
-        grouped[word].append(count)
+    with ThreadPoolExecutor() as executor:
+        mapped = list(executor.map(mapper, words))
 
-    reduced = {word: sum(counts) for word, counts in grouped.items()}
+    reduced = reducer(mapped)
     return reduced
 
 
